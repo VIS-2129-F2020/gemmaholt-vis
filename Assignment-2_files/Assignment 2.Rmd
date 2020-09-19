@@ -1,0 +1,175 @@
+---
+title: "Assignment 2"
+author: "Gemma Holt"
+date: "9/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Projections and Distortions
+
+## Setup
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library (rnaturalearth)
+library(cartogram)
+library(sf)
+library(ggspatial)
+library(rnaturalearthdata)
+library(viridis)
+library(dplyr)
+```
+
+## Finland Base Map
+```{r}
+finland_regions <- ne_states(country= "Finland", returnclass= "sf")
+
+finland_map <- ggplot(finland_regions) +
+  geom_sf()+
+  theme_bw()
+
+finland_map
+```
+
+##Projections
+```{r}
+finn_UCS <- "+proj=tmerc +lat_0=0 +lon_0=27 +k=1 +x_0=3500000 +y_0=0 +ellps=intl +units=m +no_defs"
+
+finn_zone0 <- "+proj=tmerc +lat_0=0 +lon_0=18 +k=1 +x_0=500000 +y_0=0 +ellps=intl +units=m +no_defs"
+
+finn_zone5 <- "+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=5500000 +y_0=0 +ellps=intl +units=m +no_defs"
+```
+
+
+## Finland Uniform Coordinate System
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_UCS) +
+  theme_bw()+
+xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland")
+```
+
+## Finland Zone 0
+This zone is designed for mapping the western-most (Sweden-adjacent) part of Finland.
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_zone0) +
+  theme_bw()+
+  xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland", subtitle="Zone 0")
+```
+
+
+## Finland Zone 5
+This zone is designed for mapping the eastern-most (Russia-adjacent) part of Finland. 
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_zone5) +
+  theme_bw()+
+  xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland", subtitle="Zone 5")
+```
+
+## Transforming coordinate systems
+```{r}
+regions_transformed <- finland_regions %>%
+  st_transform(crs = finn_UCS)
+
+ggplot(regions_transformed) +
+  geom_sf(color = "black", fill = "blue") +
+  theme_bw()
+```
+
+
+## Importing data
+I downloaded regional population and immigration data from Statistics Finland. I ran into a problem since the csv file was not exporting umlauts. I addressed most of the issues in the csv, excluding the data for 	
+Päijät-Häme which I changed manually. 
+```{r}
+finn_migrate <- read_csv("C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Gemma_Holt_VIS/Github/gemmaholt-vis/Assignment-2_files/FinlandImmigration2.csv")
+
+finland_skinny <- finland_regions %>% 
+  select(name, latitude, longitude, geometry)
+view(finland_skinny)
+
+finland_merge <- left_join(finland_skinny,finn_migrate, by="name")
+View(finland_merge)
+
+finland_merge[18,4] = 199604
+finland_merge[18,5] = 11135
+
+finland_merge <- mutate(finland_merge, pct_migrate=100*var_migrate/var_pop)
+
+finland_merge <- mutate(finland_merge,migrate_10k=var_migrate/1000)
+
+##transform(finland_merge, "Persons born abroad" = as.numeric(as.character("Persons born abroad")))
+```
+
+
+## Doing some stuff
+```{r}
+ggplot(finland_merge, aes(fill = pct_migrate))+
+geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "Percent",
+    breaks = seq(0, 15, by = 2),
+    labels = formatC(seq(0, 15, by = 2))) + 
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Percent of population born abroad")
+```
+
+
+## Doing some other stuff
+```{r}
+lseq <- function(from=1, to=100000, length.out=6) {
+  # logarithmic spaced sequence
+  # blatantly stolen from library("emdbook"), because need only this
+  # I blatantly stole this from https://stackoverflow.com/questions/23901907/create-a-log-sequence-across-multiple-orders-of-magnitude
+  exp(seq(log(from), log(to), length.out = length.out))
+}
+
+ggplot(finland_merge, aes(fill = migrate_10k))+
+geom_sf(color = NA) +
+  scale_fill_viridis_c(trans = "log",
+    name = "Number",
+    breaks = lseq(1, 250, 10),
+    labels = formatC(lseq(1, 250, 10))) + 
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Number of persons born abroad per 10,000")
+```
+
+
+## Doing some more stuff
+Code inspired by Carole's density equalized plot
+```{r}
+library(cartogram)
+migrate_cartogram_cont <- finland_merge %>%
+  st_transform(crs = finn_UCS) %>%
+  cartogram_cont("var_migrate")
+```
+
+
+```{r}
+ggplot(migrate_cartogram_cont, aes(fill = var_migrate)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "Number of persons born abroad",
+    breaks = seq(0, 250000, by = 25000),
+    labels = formatC(seq(0, 250000, by = 25000), 
+                     big.mark = ",", format = "f", digits = 0)) +
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Number of persons born abroad")
+```
