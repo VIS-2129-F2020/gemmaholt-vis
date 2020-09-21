@@ -173,3 +173,43 @@ ggplot(migrate_cartogram_cont, aes(fill = var_migrate)) +
         legend.title = element_text(size=9)) +
     ggtitle("Number of persons born abroad")
 ```
+
+
+## And some other stuff
+```{r}
+migrate_cartogram_dorling <- finland_merge %>%
+  st_transform(crs = finn_UCS) %>%
+  cartogram_dorling("var_migrate")
+
+ggplot(migrate_cartogram_dorling, aes(fill = var_migrate)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "Number of persons born abroad",
+    breaks = seq(0, 250000, by = 25000),
+    labels = formatC(seq(0, 250000, by = 25000), 
+                     big.mark = ",", format = "f", digits = 0)) +
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Number of persons born abroad")
+```
+
+
+## And some more stuff
+```{r}
+migrate_centeroids <- finland_merge %>%
+  st_centroid(crs = finn_UCS)
+
+ggplot(finland_merge) +
+  geom_sf(fill = NA, color = "gray") +
+  geom_sf(data = migrate_centeroids, 
+          aes(size = migrate_10k),
+          alpha = 0.5, color = "blue") +
+  scale_size_continuous(name = "Number of persons born abroad",
+    breaks = seq(0, 250000, by = 25000),
+    labels = formatC(seq(0, 250000, by = 25000), 
+                     big.mark = ",", format = "f", digits = 0),
+    range = c(0, 20)) +
+  theme_void()
+```
+
