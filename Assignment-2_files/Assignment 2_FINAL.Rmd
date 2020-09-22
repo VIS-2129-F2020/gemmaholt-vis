@@ -1,0 +1,246 @@
+---
+title: "Assignment 2"
+author: "Gemma Holt"
+date: "9/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Projections and Distortions
+
+## Setup
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library (rnaturalearth)
+library(cartogram)
+library(sf)
+library(ggspatial)
+library(rnaturalearthdata)
+library(viridis)
+library(dplyr)
+```
+
+## Finland Base Map
+```{r}
+finland_regions <- ne_states(country= "Finland", returnclass= "sf")
+
+finland_map <- ggplot(finland_regions) +
+  geom_sf()+
+  theme_bw()
+
+finland_map
+```
+
+
+## Projections
+Finland has a national coordinate system based on the Hayford ellipsoid (1924) and transverse Mercator projection. For the most part this system was replaced with a pan-European system in 2005, but I was interested in looking at the differences. I am also interested in polar politics and so I chose two projections that are designed for the Arctic and Antarctic. 
+```{r}
+finn_UCS <- "+proj=tmerc +lat_0=0 +lon_0=27 +k=1 +x_0=3500000 +y_0=0 +ellps=intl +units=m +no_defs"
+
+finn_zone0 <- "+proj=tmerc +lat_0=0 +lon_0=18 +k=1 +x_0=500000 +y_0=0 +ellps=intl +units=m +no_defs"
+
+finn_zone5 <- "+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=5500000 +y_0=0 +ellps=intl +units=m +no_defs"
+
+finn_arctic <- "+proj=stere +lat_0=90 +lat_ts=71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+finn_antarctic <- "+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+```
+
+
+## Finland Uniform Coordinate System
+This is the standard projection from the Finnish coordinate system. 
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_UCS) +
+  theme_bw()+
+xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland")
+```
+
+## Finland Zone 0
+This zone is designed for mapping the western-most (Sweden-adjacent) part of Finland.
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_zone0) +
+  theme_bw()+
+  xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland", subtitle="Zone 0")
+```
+
+
+## Finland Zone 5
+This zone is designed for mapping the eastern-most (Russia-adjacent) part of Finland. 
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_zone5) +
+  theme_bw()+
+  xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland", subtitle="Zone 5")
+```
+
+
+## Arctic Polar Stereograph
+This projection is intended to be used in Northern hemisphere - north of 60°N onshore and offshore, including the Arctic Ocean. 
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_arctic) +
+  theme_bw()+
+  xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland", subtitle="Arctic Polar Stereograph")
+```
+
+
+## Antarctic Polar Stereograph
+This projection is intended to be used in Antarctica.  I was interested in comparing the projections between the North and South Poles and was surprised that using an Antarctic projection did not have a significant impact on the legibility of the map. 
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_antarctic) +
+  theme_bw()+
+  xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland", subtitle="Antarctic Polar Stereograph")
+```
+
+## Transforming coordinate systems
+```{r}
+regions_transformed <- finland_regions %>%
+  st_transform(crs = finn_UCS)
+
+ggplot(regions_transformed, aes(fill = name)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_d()+
+  theme(legend.position = "none")
+```
+
+
+## Importing data
+I downloaded regional population and immigration data from Statistics Finland. I ran into a problem since the csv file was not exporting umlauts. I addressed most of the issues in the csv, excluding the data for 	
+Päijät-Häme which I changed manually. 
+```{r}
+finn_migrate <- read_csv("C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Gemma_Holt_VIS/Github/gemmaholt-vis/Assignment-2_files/FinlandImmigration2.csv")
+
+finland_skinny <- finland_regions %>% 
+  select(name, latitude, longitude, geometry)
+view(finland_skinny)
+
+finland_merge <- left_join(finland_skinny,finn_migrate, by="name")
+View(finland_merge)
+
+finland_merge[18,4] = 199604
+finland_merge[18,5] = 11135
+
+finland_merge <- mutate(finland_merge, pct_migrate=100*var_migrate/var_pop)
+
+finland_merge <- mutate(finland_merge,migrate_10k=var_migrate/1000)
+```
+
+
+## Figure 1
+This map shows the percentage of the population in each administrative region that was born abroad. Most foreign-born persons live near Helsinki (the yellow part of the map) and there is very little immigration outside of this region. It's not a very interesting map because of this!
+```{r}
+ggplot(finland_merge, aes(fill = migrate_10k))+
+geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "Number/10K",
+    breaks = seq(0, 2500, by = 25),
+    labels = formatC(seq(0, 2500, by = 25))) + 
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Number of persons born abroad per 10,000")
+```
+
+
+## Figure 2
+To address that, I graphed the same variable on a logarithmic scale instead of a linear scale, which produces a much more colorful map.
+```{r}
+lseq <- function(from=1, to=100000, length.out=6) {
+  # logarithmic spaced sequence
+  # blatantly stolen from library("emdbook"), because need only this
+  # I blatantly stole this from https://stackoverflow.com/questions/23901907/create-a-log-sequence-across-multiple-orders-of-magnitude
+  exp(seq(log(from), log(to), length.out = length.out))
+}
+```
+```{r}
+ggplot(finland_merge, aes(fill = migrate_10k))+
+geom_sf(color = NA) +
+  scale_fill_viridis_c(trans = "log",
+    name = "Number",
+    breaks = lseq(1, 250, 10),
+    labels = formatC(lseq(1, 250, 10))) + 
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Number of persons born abroad per 10,000")
+```
+
+
+## Figure 3
+I also mutated the same data to show the percentage of persons born abroad. I'm interested in understanding how you can produce different maps with the same data in order to uphold a particular narrative. 
+```{r}
+ggplot(finland_merge, aes(fill = pct_migrate))+
+geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "Percent",
+    breaks = seq(0, 12, by = 1),
+    labels = formatC(seq(0, 12, by = 1))) + 
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Percent of population born abroad")
+```
+
+
+## Figure 4
+I was also inspired by Carole's density equalized plot. This is the same data that's shown in Figure 1, but presented in a different looking graph. I enjoy this graph because it looks like a whale. 
+```{r}
+library(cartogram)
+migrate_cartogram_cont <- finland_merge %>%
+  st_transform(crs = finn_UCS) %>%
+  cartogram_cont("var_migrate")
+```
+
+
+```{r}
+ggplot(migrate_cartogram_cont, aes(fill = var_migrate)) +
+  geom_sf(color = NA) +
+  scale_fill_viridis_c(
+    name = "Number of persons born abroad",
+    breaks = seq(0, 250000, by = 25000),
+    labels = formatC(seq(0, 250000, by = 25000), 
+                     big.mark = ",", format = "f", digits = 0)) +
+  theme_map() +
+  theme(legend.background = element_blank(),legend.position="right", 
+        legend.title = element_text(size=9)) +
+    ggtitle("Number of persons born abroad")
+```
+
+
+## Figure 5
+Finally, I made a centeroid map depicting the number of persons born abroad with varying sizes of circles. 
+```{r}
+migrate_centeroids <- finland_merge %>%
+  st_centroid(crs = finn_UCS)
+
+ggplot(finland_merge) +
+  geom_sf(fill = NA, color = "darkgray") +
+  geom_sf(data = migrate_centeroids, 
+          aes(size = var_migrate),
+          alpha = 0.5, color = "blue") +
+  scale_size_continuous(name = "Number",
+    breaks = seq(0, 250000, by = 50000),
+    labels = formatC(seq(0, 250000, by = 50000), 
+                     big.mark = ",", format = "f", digits = 0),
+    range = c(0, 20)) +
+  ggtitle("Number of persons born abroad")+
+  theme_void()
+```
+
