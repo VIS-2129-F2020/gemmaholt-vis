@@ -48,6 +48,8 @@ finn_zone5 <- "+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=5500000 +y_0=0 +ellps=in
 finn_arctic <- "+proj=stere +lat_0=90 +lat_ts=71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
 finn_antarctic <- "+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+finn_weird <- "+proj=tmerc +lat_0=-34.629269 +lon_0=-58.4633 +k=0.9999980000000001 +x_0=100000 +y_0=100000 +ellps=intl +units=m +no_defs "
 ```
 
 
@@ -108,6 +110,19 @@ ggplot(finland_regions)+
   xlab("Longitude") + ylab("Latitude") +
     ggtitle("Finland", subtitle="Antarctic Polar Stereograph")
 ```
+
+
+##
+Since all of these maps look quite similar, I thought I'd try a projection that has no relationship to Finland. This projection is intended for use in Argentina. 
+```{r}
+ggplot(finland_regions)+
+  geom_sf() +
+  coord_sf(crs = finn_weird) +
+  theme_bw()+
+  xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Finland", subtitle="Gauss-Kruger Buenos Aires Reproyectado")
+```
+
 
 ## Transforming coordinate systems
 ```{r}
