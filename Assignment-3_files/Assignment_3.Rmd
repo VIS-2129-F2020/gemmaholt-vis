@@ -58,9 +58,8 @@ parks <- parks %>%
 
 ## Mapping the data
 ```{r}
-ggplot(water) +
-  geom_sf(fill = "lightblue", color = NA) +
-  geom_sf(data = nhoods, fill = NA, color = "black") +
+ggplot(nhoods) +
+  geom_sf(fill = NA, color = "black") +
   geom_sf(data = schools, color = "orange", size = 1) +
   geom_sf(data = libraries, color = "blue", size = 2) +
   geom_sf(data = parks, fill = "darkgreen", color = NA) +
@@ -95,7 +94,7 @@ ggplot(schools_buffer) +
 
 
 ## Plot 1: The number of libraries within 250m of public schools
-1. The number and proportion of A points within a specified distance of B points.
+The number and proportion of A points within a specified distance of B points.
 ```{r}
 libraries <- libraries %>%
   st_join(libraries_schools) %>%
@@ -116,9 +115,8 @@ pct_schools_libraries
 left_side  <- st_bbox(libraries)$xmin
 top_side <- st_bbox(libraries)$ymax
 
-ggplot(water) +
-  geom_sf(fill = "lightblue", color = NA) +
-  geom_sf(data = nhoods, fill = "grey92", color = "grey46") +
+ggplot(nhoods) +
+  geom_sf(fill = "grey92", color = "grey46") +
   geom_sf(data = libraries, size = 2,
           aes(color = by_schools)) +
   scale_color_manual(values = c("lightgreen", "darkgreen"),
@@ -136,7 +134,7 @@ ggplot(water) +
                    prettyNum(100*pct_schools_libraries, digits = 0),
                    "%) are within 250\nmeters of a public school.",
                    sep = ""),
-           hjust = .15, vjust = -.2, size = 3) +
+           hjust = .25, vjust = .25, size = 3) +
   theme_map() +
   ggtitle("Boston libraries by proximity to public schools") +
   theme(panel.background = element_rect(fill = "gray98"),
@@ -147,7 +145,7 @@ ggplot(water) +
 
 
 ## Plot 2: The number and proportion of libraries within each neighborhood
-9. The number and proportion of C polygons containing A points.
+The number and proportion of C polygons containing A points.
 ```{r}
 nhoods <- nhoods %>%
   mutate(num_libraries = lengths(st_covers(nhoods, libraries)))
@@ -155,10 +153,10 @@ nhoods <- nhoods %>%
 ggplot(nhoods) +
   geom_sf(color = NA, 
   aes(fill = num_libraries)) +
-  scale_fill_viridis_c(name = "Boston neighborhoods\nby number of libraries", breaks = breaks <- seq(0, 10, by = 1), labels = paste(prettyNum(breaks, big.mark = ","), "libraries")) +
+  scale_fill_viridis_c(name = "Neighborhoods\nby number of libraries", breaks = breaks <- seq(0, 10, by = 1), labels = paste(prettyNum(breaks, big.mark = ","), "libraries")) +
   annotation_scale(location = "br") +
   theme_map() +
-ggtitle("Neighborhoods by number of libraries") +
+ggtitle("Boston neighborhoods by number of libraries") +
 theme(panel.background = element_rect(fill = "gray98"),
         legend.position="right", legend.background = element_rect(fill = alpha("white", 0.5), color = "gray"))
 
@@ -166,7 +164,7 @@ theme(panel.background = element_rect(fill = "gray98"),
 
 
 ## Plot 3: Neighborhoods with parks in them
-13. The number and proportion of C polygons that overlap with D polygons.
+The number and proportion of C polygons that overlap with D polygons.
 ```{r}
 nhoods <- nhoods %>%
   mutate(num_parks = lengths(st_overlaps(nhoods, parks))) %>%
@@ -179,10 +177,8 @@ n_parks_nhoods
 left_side  <- st_bbox(parks)$xmin
 top_side <- st_bbox(parks)$ymax
 
-ggplot(water) +
-  geom_sf(fill = "lightblue", color = NA) +
-  geom_sf(data = nhoods,
-          aes(fill = has_parks)) +
+ggplot(nhoods) +
+  geom_sf(aes(fill = has_parks)) +
  scale_fill_manual(values = c("orange", "darkseagreen1"),
           name = "Boston neighborhoods\nby presence of a park", 
           labels = c("Neighborhood without a park",
@@ -193,9 +189,9 @@ ggplot(water) +
            label = paste(n_parks_nhoods ,
                          "of Boston's", 
                          length(nhoods$Name),
-                         "neighborhoods contain\nor overlap with", 
-                         "a park."),
-           hjust = .05, vjust = 0, size = 3) +
+                         "neighborhoods contain\nor overlap", 
+                         "with a park."),
+           hjust = 0, vjust = .6, size = 3) +
   theme_map() +
   ggtitle("Boston neighborhoods that contain parks") +
   theme(panel.background = element_rect(fill = "gray98"), legend.position="right",
@@ -221,10 +217,8 @@ n_parks_nhoods
 left_side  <- st_bbox(parks)$xmin
 top_side <- st_bbox(parks)$ymax
 
-ggplot(water) +
-  geom_sf(fill = "lightblue", color = NA) +
-  geom_sf(data = nhoods,
-          aes(fill = has_big_parks)) +
+ggplot(nhoods) +
+  geom_sf(aes(fill = has_big_parks)) +
  scale_fill_manual(values = c("orange", "darkseagreen1"),
           name = "Boston neighborhoods\nby presence of a big park", 
           labels = c("Neighborhood without a big park",
@@ -237,7 +231,7 @@ ggplot(water) +
                          length(nhoods$Name),
                          "neighborhoods contain\nor overlap with", 
                          "a big park."),
-           hjust = .05, vjust = 0, size = 3) +
+           hjust = .05, vjust = .7, size = 3) +
   theme_map() +
   ggtitle("Boston neighborhoods that contain big parks") +
   theme(panel.background = element_rect(fill = "gray98"), legend.position="right",
@@ -247,6 +241,7 @@ ggplot(water) +
 
 
 ## Plot 5: Neighborhoods by number of public schools
+The number and proportion of C polygons containing B points.
 ```{r}
 nhoods <- nhoods %>%
   mutate(num_schools = lengths(st_covers(nhoods, schools)))
@@ -254,16 +249,17 @@ nhoods <- nhoods %>%
 ggplot(nhoods) +
   geom_sf(color = NA, 
   aes(fill = num_schools)) +
-  scale_fill_viridis_c(name = "Boston neighborhoods\nby number of public schools", breaks = breaks <- seq(0, 25, by = 5), labels = paste(prettyNum(breaks, big.mark = ","), "schools")) +
+  scale_fill_viridis_c(name = "Neighborhoods by \nnumber of public schools", breaks = breaks <- seq(0, 25, by = 5), labels = paste(prettyNum(breaks, big.mark = ","), "schools")) +
   annotation_scale(location = "br") +
   theme_map() +
-ggtitle("Neighborhoods by number of schools") +
+ggtitle("Boston neighborhoods by number of schools") +
 theme(panel.background = element_rect(fill = "gray98"),
         legend.position="right", legend.background = element_rect(fill = alpha("white", 0.5), color = "gray"))
 ```
 
 
 ## Plot 5:Average density of schools in each neighborhood
+The average density of B points in each C polygon.
 ```{r}
 nhoods <- nhoods %>%
   mutate(num_schools = lengths(st_covers(nhoods, schools)))
@@ -280,7 +276,7 @@ ggplot(nhoods) +
   scale_fill_viridis_c(name = "Number of schools per \n100K square meters", breaks = breaks <- seq(0, 20, by = 5 ), labels = paste(prettyNum(breaks, big.mark = ","), "schools")) +
   annotation_scale(location = "br") +
   theme_map() +
-ggtitle("Neighborhoods by density of public schools") +
+ggtitle("Boston neighborhoods by density of public schools") +
 theme(panel.background = element_rect(fill = "gray98"),
         legend.position="right", legend.background = element_rect(fill = alpha("white", 0.5), color = "gray"))
 
@@ -288,6 +284,7 @@ theme(panel.background = element_rect(fill = "gray98"),
 
 
 ## Plot 7: Density of libraries in each neighborhoods
+The average density of A points in each C polygon.
 ```{r}
 nhoods <- nhoods %>%
   mutate(num_libraries = lengths(st_covers(nhoods, libraries)))
@@ -311,6 +308,7 @@ theme(panel.background = element_rect(fill = "gray98"),
 
 
 ## Average distance between public schools and the nearest libraries
+The average distance between B points and their nearest respective A points.
 ```{r}
 schools <- schools %>%
   mutate(library_dist = st_nn(schools, libraries, 
@@ -327,7 +325,7 @@ ggplot(nhoods) +
   geom_sf(data = schools, size = 2,
           aes(color = library_dist)) +
   scale_color_viridis_c(direction = -1, name = 
-                          "Boston public schools \nby distance to a library", breaks = breaks <- seq(0, 2500, by = 500),) +
+                          "Distance to \nlibrary (meters)", breaks = breaks <- seq(0, 2500, by = 500),) +
   theme_map() +
 ggtitle("Boston public schools by distance to a library") +
 theme(panel.background = element_rect(fill = "gray98"),
