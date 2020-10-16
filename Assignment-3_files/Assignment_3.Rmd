@@ -2,8 +2,7 @@
 title: "Assignment 3"
 author: "Gemma Holt"
 date: "9/23/2020"
-output:
-  html_document: default
+output: html_document
  ---
 
 ```{r setup, include=FALSE}
