@@ -374,12 +374,12 @@ summary {
 <div id="setup" class="section level2">
 <h2>Setup</h2>
 <pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## -- Attaching packages --------------------- tidyverse 1.3.0 --</code></pre>
+<pre><code>## -- Attaching packages ------------------------ tidyverse 1.3.0 --</code></pre>
 <pre><code>## v ggplot2 3.3.2     v purrr   0.3.4
 ## v tibble  3.0.3     v dplyr   1.0.2
 ## v tidyr   1.1.2     v stringr 1.4.0
 ## v readr   1.3.1     v forcats 0.5.0</code></pre>
-<pre><code>## -- Conflicts ------------------------ tidyverse_conflicts() --
+<pre><code>## -- Conflicts --------------------------- tidyverse_conflicts() --
 ## x dplyr::filter() masks stats::filter()
 ## x dplyr::lag()    masks stats::lag()</code></pre>
 <pre class="r"><code>library(ggplot2)
@@ -501,7 +501,7 @@ ggplot(regions_transformed, aes(fill = name)) +
 <h2>Importing data</h2>
 <p>I downloaded regional population and immigration data from Statistics Finland. I ran into a problem since the csv file was not exporting umlauts. I addressed most of the issues in the csv, excluding the data for<br />
 Päijät-Häme which I changed manually.</p>
-<pre class="r"><code>finn_migrate &lt;- read_csv(&quot;C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Gemma_Holt_VIS/Github/gemmaholt-vis/Assignment-2_files/FinlandImmigration2.csv&quot;)</code></pre>
+<pre class="r"><code>finn_migrate &lt;- read_csv(&quot;C:\\Users\\gemma\\Desktop\\gemmaholt-vis\\Assignment-2_files\\FinlandImmigration2.csv&quot;)</code></pre>
 <pre><code>## Parsed with column specification:
 ## cols(
 ##   name = col_character(),

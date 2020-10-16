@@ -140,7 +140,7 @@ ggplot(regions_transformed, aes(fill = name)) +
 I downloaded regional population and immigration data from Statistics Finland. I ran into a problem since the csv file was not exporting umlauts. I addressed most of the issues in the csv, excluding the data for 	
 Päijät-Häme which I changed manually. 
 ```{r}
-finn_migrate <- read_csv("C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Gemma_Holt_VIS/Github/gemmaholt-vis/Assignment-2_files/FinlandImmigration2.csv")
+finn_migrate <- read_csv("C:\\Users\\gemma\\Desktop\\gemmaholt-vis\\Assignment-2_files\\FinlandImmigration2.csv")
 
 finland_skinny <- finland_regions %>% 
   select(name, latitude, longitude, geometry)
