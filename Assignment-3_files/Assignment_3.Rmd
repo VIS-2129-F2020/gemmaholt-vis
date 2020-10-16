@@ -2,8 +2,9 @@
 title: "Assignment 3"
 author: "Gemma Holt"
 date: "9/23/2020"
-output: html_document
----
+output:
+  html_document: default
+ ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE)
@@ -70,6 +71,8 @@ ggplot(nhoods) +
 
 ##  Creating a buffer
 ```{r}
+eastboston <- 
+
 schools_buffer <- st_buffer(schools, dist = 250) %>%
   st_union()
 
@@ -93,7 +96,8 @@ ggplot(schools_buffer) +
 ```
 
 
-## Plot 1: The number of libraries within 250m of public schools
+## Plot 1 
+### The number of libraries within 250m of public schools
 The number and proportion of A points within a specified distance of B points.
 ```{r}
 libraries <- libraries %>%
@@ -144,7 +148,8 @@ ggplot(nhoods) +
 
 
 
-## Plot 2: The number and proportion of libraries within each neighborhood
+## Plot 2 
+### The number and proportion of libraries within each neighborhood
 The number and proportion of C polygons containing A points.
 ```{r}
 nhoods <- nhoods %>%
@@ -163,7 +168,8 @@ theme(panel.background = element_rect(fill = "gray98"),
 ```
 
 
-## Plot 3: Neighborhoods with parks in them
+## Plot 3
+### Neighborhoods with parks in them
 The number and proportion of C polygons that overlap with D polygons.
 ```{r}
 nhoods <- nhoods %>%
@@ -199,7 +205,8 @@ ggplot(nhoods) +
 ```
 
 
-## Plot 4: Neighborhoods with parks greater that 100,000 square meters
+## Plot 4
+### Neighborhoods with parks greater that 100,000 square meters
 ```{r}
 parks$area <- st_area(parks)
 parks$area = as.numeric(gsub("[m^2]", "", parks$area))
@@ -240,7 +247,8 @@ ggplot(nhoods) +
 ```
 
 
-## Plot 5: Neighborhoods by number of public schools
+## Plot 5
+### Neighborhoods by number of public schools
 The number and proportion of C polygons containing B points.
 ```{r}
 nhoods <- nhoods %>%
@@ -258,7 +266,8 @@ theme(panel.background = element_rect(fill = "gray98"),
 ```
 
 
-## Plot 5:Average density of schools in each neighborhood
+## Plot 5
+### Average density of schools in each neighborhood
 The average density of B points in each C polygon.
 ```{r}
 nhoods <- nhoods %>%
@@ -283,7 +292,8 @@ theme(panel.background = element_rect(fill = "gray98"),
 ```
 
 
-## Plot 7: Density of libraries in each neighborhoods
+## Plot 7
+### Density of libraries in each neighborhoods
 The average density of A points in each C polygon.
 ```{r}
 nhoods <- nhoods %>%
