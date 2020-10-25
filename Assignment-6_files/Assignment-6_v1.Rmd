@@ -1,0 +1,154 @@
+---
+title: "Assignment_7"
+author: "Gemma Holt"
+date: "10/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setting up
+```{r}
+library(httr)
+library(rjson)
+library(OpenStreetMap)
+library(leaflet)
+library(scales)
+library(dplyr)
+library(purrr)
+library(tidyverse)
+library(sf)
+library(htmltools)
+library(htmlwidgets)
+library(googlePolylines)
+library (rStrava) # devtools::install_github('fawda123/rStrava')
+```
+
+## Set up the API - REMEMBER TO DELETE THIS
+```{r}
+app_name <-  # chosen by user
+
+app_client_id  <- # an integer, assigned by Strava
+app_secret <- # an alphanumeric secret, assigned by Strava
+
+# create the authentication token
+#stoken <- httr::config(token = strava_oauth(app_name, app_client_id, app_secret, app_scope="activity:read_all"))
+
+```
+
+
+# Getting the data
+Using the Strava API, I pulled all activities since June 1, 2019. This includes runs, bike rides, hikes, yoga, etc. This process relies on the rStrava package, which I navigated with the help of its developers at [this link](https://padpadpadpad.github.io/post/animate-your-strava-activities-using-rstrava-and-gganimate/) and [this link](https://github.com/fawda123/rStrava)
+```{r}
+# get activities list
+my_runs <- get_activity_list(stoken, id = NULL, before = NULL, after = as.Date("2019-06-01"), club = FALSE)
+
+my_runs
+```
+
+# Compiling dataframe
+I filtered all of my activities to show only runs. I also created a new dataframe with a subset of columns to make the data easier to work with. 
+```{r}
+my_runs_df <- compile_activities(my_runs) %>%
+  filter (type == "Run", manual==FALSE)
+```
+
+
+```{r}
+desired_columns <- c('distance', 'average_speed', 'moving_time', 'start_date', 'start_date_local', 'map.summary_polyline', 'id', 'start_latitude', 'start_longitude', 'total_elevation_gain')
+
+my_runs_df <- select(my_runs_df, match(desired_columns, names(my_runs_df)))
+
+my_runs_df <- mutate(my_runs_df,
+                  activity_no = seq(1,n(), 1),
+                  moving_time = moving_time/60/60, 
+                  date = gsub("T.*$", '', start_date) %>%
+                    as.POSIXct(., format = '%Y-%m-%d'),
+                  month = format(date, "%m"),
+                  day = format(date, "%d"),
+                  year = format(date, "%Y")) %>%
+  mutate_at(., c('month', 'day'), as.numeric)
+
+lons.range <- c(-71.25, -71.1)
+lats.range <- c(42.33, 42.44)
+
+view(my_runs_df)
+```
+
+
+## Figuring out how to decode Google polylines
+Strava gives you spatial data in an encoded polyline. You can do a lot with this if you're willing to get an API key from Google but it will require credit card information. The workaround is to use the Google Polylines package in R to decode the data, which I learned about [from here](https://stackoverflow.com/questions/57376373/how-to-create-spatial-line-dataframe-from-encoded-polylines). I mapped one run as a test. 
+```{r}
+run_one <- decode(my_runs_df$map.summary_polyline[1])
+run_one_df <- data.frame(run_one)
+
+leaflet(run_one_df) %>% 
+    addProviderTiles(providers$Stamen.TonerLite) %>% 
+    addPolylines(lng = ~ lon, lat = ~ lat)
+```
+
+
+## Decoding all of the polylines
+Once I figured out how to work with the encoded polylines, I wrote 
+```{r}
+run_list = purrr::map(my_runs_df$map.summary_polyline, function(x) decode(x))
+
+```
+
+
+
+## Plot all the runs with a for loop
+Full credit for this problem solving goes to my partner John Russell, resident Python wizard, and also [this stack overflow](https://stackoverflow.com/questions/53813758/shiny-leaflet-add-large-amount-of-separated-polylines)
+```{r}
+all_runs <- leaflet() %>% 
+    addProviderTiles(providers$Stamen.TonerLite) %>%
+    setView(lng=-71.122859,lat=42.397434,zoom=11) %>%
+  addControl("Running Routes in Somerville and Beyond", position = "topright")
+
+for(i in 1:length(run_list)){
+  all_runs <- all_runs %>% addPolylines(data = data.frame(run_list[i]),
+                                        lng = ~ lon,
+                                        lat= ~ lat,
+                                        #label=i,
+                                        weight=0.6)
+
+}
+
+all_runs
+saveWidget(all_runs, file = "allruns.html")
+
+```
+
+
+## Looking at my routes in more detail
+```{r}
+fave_run_nums <- c(52, 185, 193, 81, 110,74, 210)
+fave_run_names <- c("Full Minuteman", "Mystic Lakes Loop", "Fresh Pond Loop", "Tufts Track", "Home from the office", "Long Charles Loop", "Alewife Loop")
+
+fave_runs <- leaflet() %>% 
+    addProviderTiles(providers$Stamen.TonerLite) %>%
+    setView(lng=-71.122859,lat=42.397434,zoom=11) %>%
+addControl("My Favorite Routes", position = "topright")
+
+for(i in 1:length(fave_run_nums)){
+  describe <- paste(fave_run_names[i], "<br>", prettyNum(my_runs_df$distance[fave_run_nums[i]], digits = 3), " kilometers", "<br>",
+prettyNum(my_runs_df$total_elevation_gain[fave_run_nums[i]], digits = 3), "meters elevation") %>%
+  lapply(htmltools::HTML)
+
+  fave_runs <- fave_runs %>% addPolylines(data = data.frame(run_list[fave_run_nums[i]]),
+                                        lng = ~ lon,
+                                        lat= ~ lat,
+                                        popup=describe,
+                                        weight=2,
+                                        highlightOptions = highlightOptions(color = "orange", weight = 6))
+
+}
+
+fave_runs
+
+saveWidget(fave_runs, file = "faveruns.html")
+
+```
+
