@@ -26,12 +26,12 @@ library(googlePolylines)
 library (rStrava) # devtools::install_github('fawda123/rStrava')
 ```
 
-## Set up the API - REMEMBER TO DELETE THIS
+## Set up the API
+This was [the tutorial](https://medium.com/@annthurium/getting-started-with-the-strava-api-a-tutorial-f3909496cd2d) I followed to get the Strava API set up. I followed steps one and two, then switched to [this tutorial](https://github.com/fawda123/rStrava#APIfunctions). Then in R, create the authentication token using your personal information from your API. Replace the app_name, app_client_id, and app_secret objects with the relevant info from your account.
 ```{r}
-app_name <-  # chosen by user
-
-app_client_id  <- # an integer, assigned by Strava
-app_secret <- # an alphanumeric secret, assigned by Strava
+app_name <- 'myappname' # chosen by user
+app_client_id  <- 'myid' # an integer, assigned by Strava
+app_secret <- 'xxxxxxxx' # an alphanumeric secret, assigned by Strava
 
 # create the authentication token
 #stoken <- httr::config(token = strava_oauth(app_name, app_client_id, app_secret, app_scope="activity:read_all"))
@@ -91,7 +91,7 @@ leaflet(run_one_df) %>%
 
 
 ## Decoding all of the polylines
-Once I figured out how to work with the encoded polylines, I wrote 
+Once I figured out how to work with the encoded polylines, I wrote a function that would decode each polyline in the dataframe called my_runs_df. Map.summary_polyline is the column where the spatial data is located. 
 ```{r}
 run_list = purrr::map(my_runs_df$map.summary_polyline, function(x) decode(x))
 
@@ -123,6 +123,7 @@ saveWidget(all_runs, file = "allruns.html")
 
 
 ## Looking at my routes in more detail
+I manually selected seven routes that I would map in more detail. I assigned each of them a name and created labels that would show total distance and elevation gain. 
 ```{r}
 fave_run_nums <- c(52, 185, 193, 81, 110,74, 210)
 fave_run_names <- c("Full Minuteman", "Mystic Lakes Loop", "Fresh Pond Loop", "Tufts Track", "Home from the office", "Long Charles Loop", "Alewife Loop")
@@ -150,5 +151,44 @@ fave_runs
 
 saveWidget(fave_runs, file = "faveruns.html")
 
+```
+
+
+## Combining the two maps
+After Monday's class, I wanted to see if I could add a layer that would allow me to toggle on/off my favorite routes. 
+```{r}
+combined_runs <- leaflet() %>% 
+    addProviderTiles(providers$Stamen.TonerLite) %>%
+    setView(lng=-71.122859,lat=42.397434,zoom=11) %>%
+  addControl("Running Routes in Somerville and Beyond", position = "topright")
+
+for(i in 1:length(run_list)){
+  combined_runs <- combined_runs %>% addPolylines(data = data.frame(run_list[i]),
+                                        lng = ~ lon,
+                                        lat= ~ lat,
+                                        #label=i,
+                                        weight=0.6,
+                                        color="blue")
+
+} %>%
+  
+addLayersControl(overlayGroups = fave_run_nums, options = layersControlOptions(collapsed = FALSE))
+  
+  for(i in 1:length(fave_run_nums)){
+  describe <- paste(fave_run_names[i], "<br>", prettyNum(my_runs_df$distance[fave_run_nums[i]], digits = 3), " kilometers", "<br>",
+prettyNum(my_runs_df$total_elevation_gain[fave_run_nums[i]], digits = 3), "meters elevation") %>%
+  lapply(htmltools::HTML)
+
+  fave_runs <- fave_runs %>% addPolylines(data = data.frame(run_list[fave_run_nums[i]]),
+                                        lng = ~ lon,
+                                        lat= ~ lat,
+                                        popup=describe,
+                                        color="orange",
+                                        weight=2,
+                                        highlightOptions = highlightOptions(color = "red", weight = 6))
+
+}
+
+combined_runs
 ```
 
