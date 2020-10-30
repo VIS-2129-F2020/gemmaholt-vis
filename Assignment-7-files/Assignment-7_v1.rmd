@@ -1,0 +1,59 @@
+---
+title: "Assignment-7_v1"
+author: "Gemma Holt"
+date: "10/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+
+## Setting up
+```{r}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(htmltools)
+library(htmlwidgets)
+library(raster)
+library(gstat)
+library(spatial)
+library(ggthemes)
+library(ggspatial)
+library(viridis)
+```
+
+
+## Loading the data
+Inspired by a conversation with my neighbor Betty, I was curious if there was public data about rat sightings. (Betty and I spent a lot of time kvetching about the neighborhood rats.) Turns out, there is a database of 311 calls! While the premise of this is a *little* silly, I do think it could be useful as a mechanism of tracking the changes in the rat population in Somerville over time.
+```{r}
+somerville_plane <- "+proj=lcc +lat_1=41.71666666666667 +lat_2=42.68333333333333 +lat_0=41 +lon_0=-71.5 +x_0=200000 +y_0=750000 +ellps=GRS80 +units=m +no_defs"
+
+somerville_rats <- read_csv("C:/Users/gemma/Desktop/gemmaholt-vis/Assignment-7-files/Rat_Data.csv") %>%
+  mutate_at(vars(lat, lon), as.numeric) %>%
+  st_as_sf(coords=c("lat","lon"), agr = "constant", crs=somerville_plane, stringsAsFactors = FALSE, remove = TRUE)
+
+somerville_nhoods <- st_read("C:/Users/gemma/Desktop/gemmaholt-vis/Assignment-7-files/Neighborhoods/Neighborhoods.shp", quiet = TRUE) %>%
+  dplyr::select(NBHD) %>%
+  st_transform(somerville_plane)
+```
+
+
+## Mapping Somerville Neighborhoods
+```{r}
+leaflet(somerville_nhoods) %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addPolygons(highlightOptions = highlightOptions(fillColor = "yellow",
+                                                  fillOpacity = 1),
+              label = ~NBHD,
+              weight = 1)
+```
+
+
+## Combining datasets
+```{r}
+nhood_rats <- st_join(somerville_rats, somerville_nhoods, join = st_within)
+```
+
