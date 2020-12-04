@@ -1,0 +1,316 @@
+---
+title: "Aspatial Data Analysis"
+author: "Gemma Holt"
+date: "9/9/2020"
+output:
+  html_document:
+    theme: lumen
+    toc: yes
+    toc_depth: 3   
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, error = FALSE)
+```
+
+# Relationships and Distributions
+
+
+## Setup
+```{r}
+library(tidycensus)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+library(wesanderson)
+library(viridis)
+library(ggExtra)
+library(extrafont)
+library(RColorBrewer)
+library(extrafontdb)
+```
+
+
+## Loading the data
+
+These variables were copied from Carole's example problem set. I used data from King County, which is where I grew up. Additionally, after class on Monday I added an additional variable (inspired by Miguel) in order to convert the percentage of rental households into a categorical variable.  
+
+```{r}
+vars <- c(tot_hh = "H001001",
+         tot_rural_hh = "H002005",
+         tot_rent_hh = "H004004",
+         tot_own_hh = "H004002",
+         avg_hh_size = "H012001",
+         tot_pop = "P003001",
+         nh_white_pop = "P005003",
+         nh_black_pop = "P005004",
+         nh_asian_pop = "P005006",
+         hispanic_pop = "P005010",
+         med_age = "P013001")
+
+KC_tracts <- get_decennial(geography = "tract", variables = vars,state = "WA", county = "King", output = "wide") %>%
+
+  mutate(rural = (tot_rural_hh == tot_hh) ,
+         pct_rental = tot_rent_hh / tot_hh,
+         pct_own = tot_own_hh / tot_hh,
+         maj_house = case_when(
+            tot_own_hh / tot_hh > 0.5 ~ "owned",
+            tot_rent_hh / tot_hh > 0.5 ~ "rented",
+            TRUE ~ "none"),
+         majority_race_eth = case_when(
+           nh_white_pop / tot_pop > 0.5 ~ "nh_white",
+           nh_black_pop / tot_pop > 0.5 ~ "nh_black",
+           nh_asian_pop / tot_pop > 0.5 ~ "nh_asian",
+           hispanic_pop / tot_pop > 0.5 ~ "hispanic",
+           (nh_white_pop + nh_black_pop + nh_asian_pop + hispanic_pop) /
+             tot_pop < 0.5 ~ "other",
+           TRUE ~ "None")) %>%
+  filter(tot_pop > 0, tot_hh > 0) %>%
+  select(GEOID, rural, maj_house, majority_race_eth, 
+         pct_rental, avg_hh_size, tot_pop, med_age)
+
+```
+
+
+## Graphs and Figures
+### Scatterplot
+```{r}
+scatterplot <- ggplot(KC_tracts, aes(x = pct_rental,
+           y = avg_hh_size,)) +
+  geom_point() +
+  geom_smooth(model=lm) +
+  scale_x_continuous(name = "Percent of renter occupied units",
+      breaks = seq(0, 1, by = 0.1),
+      labels = paste(seq(0, 100, by = 10), "%", sep = "")) +
+  scale_y_continuous(name = "Average Household Size",
+                     breaks = seq(0, 6, by = .5),
+                     labels = paste(seq(0, 6, by =.5), sep = "")) +
+  labs(title="Scatter Plot",
+       subtitle="Average household size vs percent of renter occupied units")+
+theme_few()+
+  theme(text = element_text(family = "Verdana"))
+
+scatterplot
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/scatterplot.png",
+width=600, height=350)
+scatterplot
+dev.off()
+```
+
+### Violin Plot
+```{r}
+violinplot <- ggplot(KC_tracts, aes(x=majority_race_eth, y=avg_hh_size, fill = majority_race_eth)) + 
+  geom_violin() +
+  labs(title="Violin Plot",
+       subtitle="Average household size vs majority race/ethnicity",
+       x="Majority race/ethnicity",
+       y="Average Household Size")+
+  scale_fill_manual(values = brewer.pal(n=3, name="YlGnBu")) +
+  scale_x_discrete(name = "Majority race/ethnicity",
+                   labels = c("Non-Hispanic Asian",
+                                  "Non-Hispanic white",
+                                  "No majority"))+
+theme_few()+
+theme(legend.position = "none")+
+theme(text = element_text(family = "Verdana"))
+
+violinplot
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/violinplot.png",
+width=600, height=350)
+violinplot
+dev.off()
+                      
+```
+
+### Stacked Bar Graph
+
+This figure was also inspired by Miguel. I had originally used a histogram to show the distribution of rental households by majority race/ethnicity, but because over 75% of tracts are majority white, the data was not very interesting. Using 100% stacked bars, you can more clearly see the differences. Thanks Miguel!
+```{r}
+stackedbar <- ggplot(KC_tracts, aes(x = majority_race_eth, fill = maj_house)) +
+  geom_bar(position = "fill") +
+  scale_x_discrete(name = "Majority race/ethnicity",
+                       labels = c("Non-Hispanic Asian",
+                                  "Non-Hispanic white",
+                                  "No majority")) +
+  scale_y_continuous(name = "Percent of Tracts",
+                     breaks = seq (0,1, by = 0.1),
+                     labels = paste(seq(0, 100, by=10), "%", sep = ""))+
+scale_fill_manual(name = "Rented or owned",
+                  values = brewer.pal(n=3, name="YlGnBu"), 
+                  labels = c("Majority of households owned", "Majority of households rented")) +
+  labs(title="Bar Plot",
+       subtitle="Majority race/ethnicity by homeownership status")+
+  theme_few()+
+theme(text = element_text(family = "Verdana"))
+
+stackedbar
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/stackedbar.png",
+width=600, height=350)
+stackedbar
+dev.off()
+```
+
+### Density Plot
+```{r}
+densityplot <- ggplot(KC_tracts, aes(x = pct_rental, y=med_age)) +
+  stat_density2d(aes(fill = stat(level)), geom="polygon") + scale_fill_viridis(option = "plasma") +
+    labs(x = "Percent of renter occupied units",
+       y = "Median Age", 
+       title = "Density Plot",
+       subtitle = "Median age vs percent of renter occupied units")+
+  theme_few()+
+  theme(text = element_text(family = "Verdana"))
+
+densityplot
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/densityplot.png",
+width=600, height=350)
+densityplot
+dev.off()
+```
+ 
+ 
+###  Area Plot
+```{r}
+ areaplot <- ggplot(KC_tracts, aes(x=avg_hh_size)) +
+  geom_density(fill="#2C7FB8", color="#7FCDBB", alpha=0.8) +
+  scale_x_continuous(name = "Average Household Size",
+                     breaks = seq(0, 6, by = .5),
+                    labels = paste(seq(0, 6, by = .5), sep = "")) +
+  labs(title="Area Plot",
+       subtitle="Average Household Size in King County")+
+  theme_few()+
+  theme(text = element_text(family = "Verdana"))
+
+areaplot
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/areaplot.png",
+width=600, height=350)
+areaplot
+dev.off()
+```
+
+### Histogram
+```{r}
+densityhistplot <- ggplot(KC_tracts, aes(x=med_age)) +
+  geom_histogram(aes(y=..density..),color="black", fill="white") +
+  geom_density(alpha=.2, fill="#2C7FB8") +
+  labs(title="Density Plot with Histogram",
+       subtitle="Median Age in King County")+
+  theme_few()+
+  theme(text = element_text(family = "Verdana"))
+
+densityhistplot
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/densityhistplot.png",
+width=600, height=350)
+densityhistplot
+dev.off()
+```
+
+### Scatterplot with marginal histogram
+```{r}
+g <- ggplot(KC_tracts, aes(x = med_age, y= avg_hh_size, color = maj_house)) +
+  geom_point() +
+  scale_x_continuous(name = "Median Age",
+      breaks = seq(0, 100, by = 10)) +
+  scale_y_continuous(name = "Average Household Size",
+                     breaks = seq(0, 6, by = .5),
+                     labels = paste(seq(0, 6, by =.5), sep = "")) +
+  scale_color_manual(name = "Rented or owned",
+                     values = brewer.pal(n=3, name="YlGnBu"), 
+                     labels = c("Majority of households owned", "Majority of households rented")) +
+  labs(title="Scatter Plot with Marginal Histogram",
+       subtitle="Average household size vs median age")+
+  theme_few()+
+  theme(legend.position="bottom")+
+  theme(text = element_text(family = "Verdana"))
+
+marginalplot <- ggMarginal(g, type = "histogram", fill = "#1D91C0")
+
+marginalplot 
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/marginalplot.png",
+width=600, height=350)
+marginalplot
+dev.off()
+
+```
+
+### Pie Chart
+```{r}
+pie_chart <- ggplot(KC_tracts, aes(x = 1, fill = majority_race_eth)) +
+  geom_bar(position = "fill") +
+  coord_polar(theta = "y") +
+  scale_y_continuous(name = "Number of tracts") +
+  scale_fill_manual(values = brewer.pal(n=3, name="YlGnBu"), name = "Majority race/ethnicity", labels = c("Non-Hispanic\nAsian",
+                                  "Non-Hispanic\nwhite",
+                                  "No majority")) +
+  theme_void() +
+  labs(title ="Pie Chart",
+       subtitle ="Majority Race/Ethnicity in King County")+
+  theme(text = element_text(family = "Verdana"))
+
+pie_chart
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/pie_chart.png",
+width=600, height=350)
+pie_chart
+dev.off()
+
+```
+
+### Heat Map
+```{r}
+ heatmap <- ggplot(KC_tracts, aes(x = rural, y = majority_race_eth, fill = pct_rental)) +
+       geom_tile() +
+      scale_y_discrete(name = "Majority race/ethnicity",
+                       labels = c("Non-Hispanic\nAsian",
+                                  "Non-Hispanic\nwhite",
+                                  "No majority")) +
+      scale_x_discrete(name = "Majority income",
+                       labels = c("Urban tract",
+                                  "Rural Tract")) +
+      scale_fill_distiller(name = "Percent Rental",
+                           palette = "YlGrBu") +
+      labs(title ="Heat Map")+ 
+      theme_few()
+
+heatmap
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/heatmap.png",
+width=600, height=350)
+heatmap
+dev.off()
+```
+
+### Histogram
+```{r}
+histogram <- ggplot(KC_tracts, aes(pct_rental)) + scale_fill_brewer(name="Majority race/ethnicity",                          palette = "YlGrBu",
+                  labels = c("Non-Hispanic\nAsian",
+                                  "Non-Hispanic\nwhite",
+                                  "No majority")) + 
+  geom_histogram(aes(fill=majority_race_eth), 
+                   bins=5, 
+                   col="black", 
+                   size=.1) +
+  scale_x_continuous(name = "Percent rental") +
+  labs(title="Histogram with Fixed Bins", 
+       subtitle="Percent of renter occupied units by majority race/ethnicity")+
+  theme_few()+
+  theme(text = element_text(family = "Verdana"))
+
+histogram
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/histogram.png",
+width=600, height=350)
+histogram
+dev.off()
+```
+ 
+ 
