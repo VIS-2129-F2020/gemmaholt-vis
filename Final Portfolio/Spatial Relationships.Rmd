@@ -21,6 +21,7 @@ library(ggthemes)
 library(ggspatial)
 library(units)
 library(dplyr)
+library(nngeo)
 ```
 
 
@@ -236,7 +237,7 @@ dev.off()
 ```
 
 
-### Neighborhoods with parks greater that 100,000 square meters
+### Neighborhoods with parks greater that 100000 square meters
 ```{r}
 parks$area <- st_area(parks)
 parks$area = as.numeric(gsub("[m^2]", "", parks$area))
@@ -364,39 +365,39 @@ theme(panel.background = element_rect(fill = "gray98"),
 ```
 
 
-<!-- ### Average distance between public schools and the nearest libraries -->
-<!-- The average distance between B points and their nearest respective A points. -->
+### Average distance between public schools and the nearest libraries
+The average distance between B points and their nearest respective A points.
 ```{r, include=FALSE}
-# schools <- schools %>%
-#   mutate(library_dist = st_nn(schools, libraries, 
-#                            returnDist = TRUE)$dist) %>%
-#   mutate(library_dist = as.numeric(library_dist))
-# 
-# avg_library_dist <- mean(schools$library_dist)
-# avg_library_dist
+schools <- schools %>%
+  mutate(library_dist = st_nn(schools, libraries,
+                           returnDist = TRUE)$dist) %>%
+  mutate(library_dist = as.numeric(library_dist))
+
+avg_library_dist <- mean(schools$library_dist)
+avg_library_dist
 ```
 ```{r}
 
-# schools_libraries <- ggplot(nhoods) +
-#   geom_sf(fill = NA, color = "black") +
-#   geom_sf(data = schools, size = 2,
-#           aes(color = library_dist)) +
-#   scale_color_viridis_c(direction = -1, name = 
-#                           "Distance to \nlibrary (meters)", breaks = breaks <- seq(0, 2500, by = 500),) +
-#   theme_map() +
-# ggtitle("Boston public schools by distance to a library") +
-# theme(panel.background = element_rect(fill = "gray98"),
-#         legend.position="right", legend.background = element_rect(fill = alpha("white", 0.5), color = "gray"))
-# 
-# schools_libraries
-# 
-# png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/schools_libraries.png",
-# width = 6,
-#   height    = 4,
-#   units     = "in",
-#   res       = 1000)
-# schools_libraries
-# dev.off()
+schools_libraries <- ggplot(nhoods) +
+  geom_sf(fill = NA, color = "black") +
+  geom_sf(data = schools, size = 2,
+          aes(color = library_dist)) +
+  scale_color_viridis_c(direction = -1, name =
+                          "Distance to \nlibrary (meters)", breaks = breaks <- seq(0, 2500, by = 500),) +
+  theme_map() +
+ggtitle("Boston public schools by distance to a library") +
+theme(panel.background = element_rect(fill = "gray98"),
+        legend.position="right", legend.background = element_rect(fill = alpha("white", 0.5), color = "gray"))
+
+schools_libraries
+
+png(file="C:/Users/gemma/OneDrive/GSD Semester 1/Spatial Analysis/Final Portfolio/Figures/schools_libraries.png",
+width = 6,
+  height    = 4,
+  units     = "in",
+  res       = 1000)
+schools_libraries
+dev.off()
 ```
 
 
