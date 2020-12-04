@@ -58,8 +58,6 @@ Using the Strava API, I pulled all activities since June 1, 2019. This includes 
 ```{r}
 # get activities list
 my_runs <- get_activity_list(stoken, id = NULL, before = NULL, after = as.Date("2019-06-01"), club = FALSE)
-
-my_runs
 ```
 
 # Compiling dataframe
